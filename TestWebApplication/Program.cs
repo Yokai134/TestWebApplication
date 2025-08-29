@@ -8,23 +8,23 @@ using TestWebApplication.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ===== Õ¿—“–Œ… ¿ ¡¿«€ ƒ¿ÕÕ€’ =====
+// ===== –ù–ê–°–¢–†–û–ô–ö–ê –ë–ê–ó–´ –î–ê–ù–ù–´–• =====
 builder.Services.AddDbContext<AsdfgContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
     .LogTo(Console.WriteLine, LogLevel.Information).EnableSensitiveDataLogging().EnableDetailedErrors());
 
-// ===== Õ¿—“–Œ… ¿ —≈–¬»—Œ¬ =====
+// ===== –ù–ê–°–¢–†–û–ô–ö–ê –°–ï–†–í–ò–°–û–í =====
 builder.Services.AddControllers();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICategoryServices, CategoryServices>();
 builder.Services.AddScoped<IProductServices, ProductServices>();
 
-// ===== Õ¿—“–Œ… ¿ SWAGGER =====
+// ===== –ù–ê–°–¢–†–û–ô–ö–ê SWAGGER =====
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// ===== Õ¿—“–Œ… ¿ CORS ƒÀﬂ BLAZOR =====
+// ===== –ù–ê–°–¢–†–û–ô–ö–ê CORS –î–õ–Ø BLAZOR =====
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazor", policy =>
@@ -35,14 +35,14 @@ builder.Services.AddCors(options =>
     });
 });
 
-// ===== Õ¿—“–Œ… ¿ JSON —≈–»¿À»«¿÷»» =====
+// ===== –ù–ê–°–¢–†–û–ô–ö–ê JSON –°–ï–†–ò–ê–õ–ò–ó–ê–¶–ò–ò =====
 builder.Services.AddControllers()
     .AddJsonOptions(options => {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     });
 var app = builder.Build();
 
-// =====  ŒÕ‘»√”–¿÷»ﬂ PIPELINE =====
+// ===== –ö–û–ù–§–ò–ì–£–†–ê–¶–ò–Ø PIPELINE =====
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
