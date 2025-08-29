@@ -1,0 +1,291 @@
+﻿@page "/products/form/{Id}"
+@using System.Net.Http
+@using System.Net.Http.Json
+@using TestBlazorApp.Model
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+
+<h3>@(isNew ? "Добавить продукт" : "Изменить продукт")</h3>
+@if (errorMessage != null)
+{
+    <div class="alert alert-danger fade-message">@errorMessage</div>
+
+}
+@if (succesMessage != null)
+{
+    <div class="alert alert-success fade-message">@succesMessage</div>
+}
+@if (isNew)
+{
+    <div class="mb-3">
+        <div class="form-group">
+            <label>Наименование продукта</label>
+            <input @bind="product.Productname" class="form-control" @bind:event="oninput"/>
+            @if (string.IsNullOrEmpty(product.Productname))
+            {
+                <small class="text-danger">Поле обязательно для заполнения</small>
+            }
+        </div>
+        <div class="form-group">
+            <label>Категория</label>
+            <select class="form-control" @bind="product.CategoryId" @bind:event="onchange">
+                <option value="">Выберите категорию</option>
+                @foreach(var category in categories)
+                {
+                    <option value="@category.Id">@category.Categoryname</option>
+                }
+            </select>
+            @if (product.CategoryId == null || product.CategoryId == 0)
+            {
+                <small class="text-danger">Поле обязательно для заполнения</small>
+            }
+        </div>
+        <div class="form-group">
+            <label>Количество</label>
+            <input class="form-control" type="number" @bind="product.Productcount" @bind:event="oninput"/>
+            @if(product.Productcount <= 0)
+            {
+                <small class="text-danger">Поле обязательно для заполнения</small>
+            }
+        </div>
+    </div>
+    <div class="text-end">
+        <button @onclick="() => AddProduct()" class="btn btn-primary mt-2">Добавить</button>
+        <button @onclick="ClientNavigate" class="btn btn-primary mt-2">Назад</button>
+    </div>
+}
+else
+{
+    <div class="mb-3">
+        <div class="form-group">
+            <label>Наименование продукта</label>
+            <input @bind="product.Productname" class="form-control" @bind:event="oninput" />
+            @if (string.IsNullOrEmpty(product.Productname))
+            {
+                <small class="text-danger">Поле обязательно для заполнения</small>
+            }
+        </div>
+        <div class="form-group">
+            <label>Категория</label>
+            <select class="form-control" @bind="product.CategoryId" @bind:event="onchange">
+                <option value="">Выберите категорию</option>
+                @foreach (var category in categories)
+                {
+                    <option value="@category.Id">@category.Categoryname</option>
+                }
+            </select>
+            @if (product.CategoryId == 0)
+            {
+                <small class="text-danger">Поле обязательно для заполнения</small>
+            }
+        </div>
+        <div class="form-group">
+            <label>Количество</label>
+            <input class="form-control" type="number" @bind="product.Productcount" @bind:event="oninput" />
+            @if (product.Productcount <= 0)
+            {
+                <small class="text-danger">Поле обязательно для заполнения</small>
+            }
+        </div>
+    </div>
+    <div class="text-end">
+        <button @onclick="() => UpdateProduct()" class="btn btn-primary mt-2">Изменить</button>
+        <button @onclick="ClientNavigate" class="btn btn-primary mt-2">Назад</button>
+    </div>
+}
+
+<style>
+    .fade-message {
+    animation: fadeOut 3s ease-in-out forwards;
+    }
+
+    @@keyframes fadeOut {
+    0% {
+    opacity: 1;
+    }
+
+    70% {
+    opacity: 1;
+    }
+
+    100% {
+    opacity: 0;
+    display: none;
+    }
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+    private string? errorMessage;
+    private string? succesMessage;
+    private bool isNew => Id == "new";
+    private List<Product>? products = new();
+    private CreateProductModel? product = new();
+    private List<Model.Category>? categories = new();
+
+    // Инициализация компонента - загрузка продуктов
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    // Загрузка продуктов из API и определения режима создания или редактироования
+    private async Task LoadData()
+    {
+        try
+        {
+            var httpClient = HttpClientFactory.CreateClient("ApiClient");
+            categories = await httpClient.GetFromJsonAsync<List<Model.Category>>("category");
+            products = await httpClient.GetFromJsonAsync<List<Product>>("products");
+            if(!isNew && !string.IsNullOrEmpty(Id))
+            {
+                product = await httpClient.GetFromJsonAsync<CreateProductModel>($"products/{Id}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    // Создание продукта
+    private async Task AddProduct()
+    {
+        if (string.IsNullOrWhiteSpace(product.Productname))
+        {
+            succesMessage = null;
+            errorMessage = "Наименование обязательно";
+            _ = HideErrorMessageAfterDelay();
+            return;
+        }
+
+        bool exists = products.Any(c =>
+           c.Productname.Equals(product.Productname, StringComparison.OrdinalIgnoreCase));
+
+        if (exists)
+        {
+            succesMessage = null;
+            errorMessage = "Продукт с таким именем уже существует";
+            _ = HideErrorMessageAfterDelay();
+            return;
+        }
+
+        if(product.CategoryId <= 0 || product.CategoryId == null)
+        {
+            succesMessage = null;
+            errorMessage = "Категория не выбрана";
+            _ = HideErrorMessageAfterDelay();
+            return;
+        }
+
+        if(product.Productcount <= 0)
+        {
+            succesMessage = null;
+            errorMessage = "Количество не должно быть 0 или меньше 0";
+            _ = HideErrorMessageAfterDelay();
+            return;
+        }
+
+        try
+        {
+            var httpClient = HttpClientFactory.CreateClient("ApiClient");
+            var response = await httpClient.PostAsJsonAsync("products", product);
+            products = await httpClient.GetFromJsonAsync<List<Product>>("products");
+            if (response.IsSuccessStatusCode)
+            {
+                errorMessage = null;
+                product = new CreateProductModel();
+                succesMessage = "Продукт добавлен";
+                _ = HideMessageAfterDelay();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    // Обновление продукта
+    private async Task UpdateProduct()
+    {
+        if (string.IsNullOrWhiteSpace(product.Productname))
+        {
+            succesMessage = null;
+            errorMessage = "Наименование обязательно";
+            _ = HideErrorMessageAfterDelay();
+            return;
+        }
+
+        bool exists = products.Any(c => c.ProductId != product.Id &&
+           c.Productname.Equals(product.Productname, StringComparison.OrdinalIgnoreCase));
+
+        if (exists)
+        {
+            succesMessage = null;
+            errorMessage = "Продукт с таким именем уже существует";
+            _ = HideErrorMessageAfterDelay();
+            return;
+        }
+
+        if (product.CategoryId <= 0 || product.CategoryId == null)
+        {
+            succesMessage = null;
+            errorMessage = "Категория не выбрана";
+            _ = HideErrorMessageAfterDelay();
+            return;
+        }
+
+        if (product.Productcount <= 0)
+        {
+            succesMessage = null;
+            errorMessage = "Количество не должно быть 0 или меньше 0";
+            _ = HideErrorMessageAfterDelay();
+            return;
+        }
+
+        try
+        {
+            var httpClient = HttpClientFactory.CreateClient("ApiClient");
+            var response = await httpClient.PutAsJsonAsync($"products/{product.Id}", product);
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/products");
+            }
+            else
+            {
+                Console.WriteLine($"Ошибка: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    // Затухание сообщения об выполненой операции
+    private async Task HideMessageAfterDelay()
+    {
+        await Task.Delay(3000);
+        succesMessage = null;
+        StateHasChanged();
+    }
+
+    // Затухание сообщения об ошибке
+    private async Task HideErrorMessageAfterDelay()
+    {
+        await Task.Delay(3000);
+        errorMessage = null;
+        StateHasChanged();
+    }
+
+    // Возврат на станицу продуктов
+    private void ClientNavigate()
+    {
+        Navigation.NavigateTo("/products");
+    }
+  
+
+}

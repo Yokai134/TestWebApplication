@@ -1,0 +1,23 @@
+﻿@page "/"
+@inject NavigationManager Navigation
+
+
+
+@code{
+
+    // Выполняет перенаправление на страницу продуктов при инициализации
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProduct();
+    }
+
+    // Перенаправляет пользователя на страницу продуктов
+    private async Task LoadProduct()
+    {
+        Navigation.NavigateTo("/products");
+    }
+
+
+
+}
+
